@@ -142,8 +142,8 @@ A ferramenta executa os seguintes modulos de auditoria:
 ### Opcao 1 — Download do script (recomendado)
 
 ```bash
-git clone https://github.com/Deepaudit/pablocybersec-linux-privesc.git
-cd pablocybersec-linux-privesc
+git clone https://github.com/Deepaudit/linux-privesc.git
+cd linux-privesc
 chmod +x pcsec-privesc.sh
 ./pcsec-privesc.sh --help
 ```
@@ -316,7 +316,7 @@ reaproveitam exatamente os mesmos dados.
 ## Estrutura do repositorio
 
 ```
-pablocybersec-linux-privesc/
+linux-privesc/
 ├── pcsec-privesc.sh          # script principal (motor, banner, CLI, relatorios)
 ├── README.md
 ├── CHANGELOG.md

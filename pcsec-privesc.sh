@@ -626,7 +626,7 @@ _pcsec_build_sarif() {
     echo '      "tool": {'
     echo '        "driver": {'
     echo "          \"name\": \"$PCSEC_SHORTNAME\","
-    echo "          \"informationUri\": \"https://github.com/Deepaudit/pablocybersec-linux-privesc\","
+    echo "          \"informationUri\": \"https://github.com/Deepaudit/linux-privesc\","
     echo "          \"version\": \"$PCSEC_VERSION\""
     echo '        }'
     echo '      },'

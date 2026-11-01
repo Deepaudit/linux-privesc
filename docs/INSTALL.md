@@ -13,8 +13,8 @@ adicional.
 ## Passo a passo
 
 ```bash
-git clone https://github.com/Deepaudit/pablocybersec-linux-privesc.git
-cd pablocybersec-linux-privesc
+git clone https://github.com/Deepaudit/linux-privesc.git
+cd linux-privesc
 chmod +x pcsec-privesc.sh
 ```
 
