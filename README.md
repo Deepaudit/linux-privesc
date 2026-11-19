@@ -1,4 +1,4 @@
-# PabloCyberSec Linux Privilege Escalation (PCSEC-PRIVESC) v5
+# PabloCyberSec Linux Privilege Escalation (PCSEC-PRIVESC) v6
 
 ```
   ____   ____ ____  _____ ____
@@ -11,7 +11,7 @@
   LINUX PRIVILEGE ESCALATION
   Security Auditing & Misconfiguration Analysis
   Developed by PabloCyberSec
-  Version 5.0.0
+  Version 6.0.0-dev
 ```
 
 > Auditoria local de seguranca em sistemas Linux, com foco em identificar
@@ -24,7 +24,7 @@
 ## Sumario
 
 - [Sobre o projeto](#sobre-o-projeto)
-- [Novidades da v5](#novidades-da-v5)
+- [Novidades da v6](#novidades-da-v6)
 - [Objetivos](#objetivos)
 - [Funcionalidades](#funcionalidades)
 - [Requisitos](#requisitos)
@@ -59,13 +59,33 @@ equipes de *red team*/*blue team*, administradores de sistemas e estudantes
 que precisam avaliar, de forma rapida e organizada, a postura de seguranca de
 um host Linux **em ambientes autorizados**.
 
-## Novidades da v5
+## Novidades da v6
 
-A v5 e uma revisao profunda focada em cobertura, qualidade de sinal e
-engenharia de software. Resumo rapido (detalhes completos em
-[`CHANGELOG.md`](CHANGELOG.md)):
+A v6 e uma revisao focada em **qualidade e precisao de classificacao**, para
+reduzir ruido e falsos positivos antes de expandir cobertura. Resumo rapido
+(detalhes completos em [`CHANGELOG.md`](CHANGELOG.md) e no roadmap tecnico em
+[`docs/ROADMAP-V6.md`](docs/ROADMAP-V6.md)):
 
-- **2 novos modulos**: `Container Escape Audit` e `Credential Hunting`.
+- **Classificacao de Linux Capabilities em 3 tiers reais de escalacao**:
+  `cap_setuid`/`cap_sys_module`/`cap_sys_admin` (CRITICAL — equivalem a
+  root), `cap_dac_override`/`cap_sys_ptrace`/`cap_chown`/`cap_fowner` (HIGH —
+  passo intermediario de uma cadeia) e capabilities de **rede**
+  (`cap_net_raw`, `cap_net_admin`, `cap_net_bind_service`) tratadas como
+  `MEDIUM`/`LOW`, nunca mais equiparadas as anteriores. Binarios de rede
+  conhecidos (`ping`, `mtr-packet`, `arping`, etc.) passam por uma baseline
+  propria e deixam de aparecer como HIGH.
+- **Correlation Engine mais preciso**: o contexto que alimenta cadeias de
+  ataque so e alimentado por capabilities CRITICAL/HIGH — capability de rede
+  nao gera mais falsas cadeias de escalacao local.
+- **Roadmap tecnico publico** para os proximos passos da v6: motor de
+  deteccao de falsos positivos por baseline, correlacao declarativa com
+  grafo de `attack_path`, identificacao de CVEs por versao de pacote
+  instalado, comparacao de permissoes contra o padrao esperado por familia
+  de distribuicao, e relatorio HTML com identidade visual PabloCyberSec.
+
+### Heranca da v5 (mantida e ainda em producao)
+
+- **2 modulos**: `Container Escape Audit` e `Credential Hunting`.
 - **Motor de correlacao**: combina achados independentes em "cadeias de
   ataque" (ex.: grupo `docker` + binario `docker` presente = CRITICAL).
 - **Execucao isolada por subprocesso**, com **timeout configuravel**
@@ -105,14 +125,14 @@ A ferramenta executa os seguintes modulos de auditoria:
 | **System Enumeration** | Distro, kernel, arquitetura, usuario/UID, grupos, uptime, hostname, indicios de container, variaveis de ambiente sensiveis (sem expor valores) e ferramentas administrativas disponiveis. |
 | **Sudo Configuration Audit** | Regras `sudo` acessiveis ao usuario atual (via `sudo -n -l`, nunca solicita senha), binarios classicamente associados a escalacao via `sudo`, e `env_keep` perigoso (`LD_PRELOAD`/`LD_LIBRARY_PATH`). |
 | **SUID / SGID Audit** | Arquivos com bit `SUID`/`SGID` em diretorios padrao de binarios, com baseline de instalacoes legitimas conhecidas para reduzir falso positivo, destacando programas frequentemente citados em tecnicas publicas de escalacao. |
-| **Linux Capabilities** | *Capabilities* do processo atual (`/proc/self/status`) e de arquivos (via `getcap`), destacando as de maior impacto (ex. `cap_setuid`, `cap_sys_admin`). |
+| **Linux Capabilities** | *Capabilities* do processo atual (`/proc/self/status`) e de arquivos (via `getcap`). Na v6, classificadas em 3 tiers por potencial real de escalacao: CRITICAL (`cap_setuid`, `cap_sys_module`, `cap_sys_admin`), HIGH (`cap_dac_override`, `cap_sys_ptrace`, `cap_chown`, `cap_fowner`) e rede (`cap_net_raw`, `cap_net_admin`), esta ultima com baseline de binarios legitimos conhecidos (`ping`, `mtr-packet`, etc.) para evitar falso positivo. |
 | **Process & Service Audit** | Processos rodando como root visiveis ao usuario, binarios de processos graviaveis pelo usuario atual, e permissao de escrita em diretorios de unidades `systemd`. |
 | **Scheduled Tasks (Cron) Audit** | Crontab do usuario, permissao de escrita em `/etc/crontab` e em `/etc/cron.*`, scripts cron graviaveis por terceiros, e padroes de *wildcard injection* em scripts que usam `tar`/`rsync`/`7z`. |
 | **File Permission Analysis** | Variavel `PATH`, permissao de arquivos sensiveis (`/etc/passwd`, `/etc/shadow`, etc. — **sem ler o conteudo**), diretorios home e arquivos de inicializacao de shell graviaveis por outros, e chaves privadas SSH com permissao incorreta (apenas cabecalho inspecionado, conteudo nunca lido). |
 | **Kernel & Update Audit** | Versao do kernel e do SO para correlacao manual com bases de CVE (com tabela offline nao exaustiva de referencia), indicios de reboot pendente, gerenciador de pacotes disponivel, e presenca de `pkexec`/polkit (contexto PwnKit). |
-| **Container Escape Audit** *(novo na v5)* | Socket do Docker gravavel, pertenca ao grupo `docker`, capabilities efetivas dentro de containers, `/sys/fs/cgroup` gravavel, NFS `no_root_squash`, `/etc/ld.so.preload` e `/etc/ld.so.conf.d` graviaveis. |
-| **Credential Hunting** *(novo na v5)* | Padroes textuais de credenciais em historico de shell, `.netrc`, `.git-credentials`, `.aws/credentials`, `.docker/config.json`, `.npmrc`, `.pypirc`, `.env` — **nunca exibe o valor real**, apenas arquivo, linha e trecho redigido. |
-| **Correlation Engine** *(novo na v5)* | Roda sempre por ultimo; combina sinais de todos os demais modulos em cadeias de ataque (ex.: sudo NOPASSWD arriscado + SUID suspeito = prioridade maxima). |
+| **Container Escape Audit** *(desde a v5)* | Socket do Docker gravavel, pertenca ao grupo `docker`, capabilities efetivas dentro de containers, `/sys/fs/cgroup` gravavel, NFS `no_root_squash`, `/etc/ld.so.preload` e `/etc/ld.so.conf.d` graviaveis. |
+| **Credential Hunting** *(desde a v5)* | Padroes textuais de credenciais em historico de shell, `.netrc`, `.git-credentials`, `.aws/credentials`, `.docker/config.json`, `.npmrc`, `.pypirc`, `.env` — **nunca exibe o valor real**, apenas arquivo, linha e trecho redigido. |
+| **Correlation Engine** *(desde a v5, refinado na v6)* | Roda sempre por ultimo; combina sinais de todos os demais modulos em cadeias de ataque (ex.: sudo NOPASSWD arriscado + SUID suspeito = prioridade maxima). Na v6, so considera capabilities CRITICAL/HIGH como sinal de escalacao — capability de rede nao entra mais na correlacao. |
 
 > A ferramenta **nunca** executa exploits, **nunca** tenta obter root
 > automaticamente e **nunca** imprime conteudo de arquivos sensiveis, tokens,
@@ -336,9 +356,9 @@ linux-privesc/
 │   ├── cron_audit.sh
 │   ├── permission_audit.sh
 │   ├── kernel_audit.sh
-│   ├── container_escape.sh      # novo na v5
-│   ├── credential_hunting.sh    # novo na v5
-│   └── correlate.sh             # novo na v5 (motor de correlacao)
+│   ├── container_escape.sh      # desde a v5
+│   ├── credential_hunting.sh    # desde a v5
+│   └── correlate.sh             # desde a v5 (motor de correlacao), refinado na v6
 ├── tests/
 │   └── test_core.bats
 └── .github/
